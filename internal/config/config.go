@@ -4,7 +4,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-type Config struct {
+type config struct {
 	HTTPport   string `envconfig:"API_PORT"`
 	DBhost     string `envconfig:"DB_HOST"`
 	DBname     string `envconfig:"POSTGRES_DB"`
@@ -12,8 +12,8 @@ type Config struct {
 	DBpassword string `envconfig:"POSTGRES_PASSWORD"`
 }
 
-func GetConfig() (*Config, error) {
-	cfg := &Config{}
+func GetConfig() (*config, error) {
+	cfg := &config{}
 	err := envconfig.Process("", cfg)
 
 	if err != nil {
