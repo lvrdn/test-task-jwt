@@ -18,6 +18,7 @@ func NewMockEmailSender(ctx context.Context, wg *sync.WaitGroup) (*mockEmailSend
 	return &mockEmailSender{}, nil
 }
 
-func (ms *mockEmailSender) Send(email, msg string) error {
+func (ms *mockEmailSender) Send(guid, msg string) error {
+	//поиск user email по guid и отправка msg
 	return nil
 }

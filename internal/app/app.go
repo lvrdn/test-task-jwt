@@ -5,6 +5,7 @@ import (
 	"app/internal/handler"
 	mockSender "app/internal/sender/mock"
 	"app/internal/storage/postgresql"
+	"app/internal/tokens"
 	"app/pkg/logger"
 	"context"
 	"fmt"
@@ -55,11 +56,9 @@ func New(ctx context.Context) *app {
 	}
 
 	handler := handler.NewHandler(
-		cfg.AccessTokenKey,
-		cfg.AccessTokenExpMinutes,
-		cfg.RefreshTokenExpMinutes,
 		storage,
 		emailSender,
+		tokens.NewTokenManager(cfg.RefreshTokenLen, cfg.MathcingKeyLen, cfg.AccessTokenKey, cfg.AccessTokenExpMinutes, cfg.RefreshTokenExpMinutes),
 	)
 
 	mux := http.NewServeMux()
