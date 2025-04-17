@@ -36,6 +36,15 @@ type Response struct {
 	GetHeaderAuthorization bool
 }
 
+func decode(value string) string {
+	result, _ := base64.StdEncoding.DecodeString(value)
+	return string(result)
+}
+
+func encode(value string) string {
+	return base64.StdEncoding.EncodeToString([]byte(value))
+}
+
 func TestApp(t *testing.T) {
 
 	cases := []*AuthTestCase{
@@ -103,9 +112,10 @@ func TestApp(t *testing.T) {
 			RT: &RefreshToken{
 				NumCookieSt: 3, //в 3 тесте был получен refresh token
 				CookieUpdate: func(cookie *http.Cookie) *http.Cookie {
+					newValue := encode("test")
 					return &http.Cookie{
 						Name:     cookie.Name,
-						Value:    "test",
+						Value:    newValue,
 						HttpOnly: cookie.HttpOnly,
 						Path:     cookie.Path,
 						Expires:  cookie.Expires,
@@ -125,13 +135,14 @@ func TestApp(t *testing.T) {
 				NumCookieSt: 3,
 				CookieUpdate: func(cookie *http.Cookie) *http.Cookie {
 
-					refreshToken := cookie.Value
+					refreshToken := decode(cookie.Value)
 					tokenData := strings.Split(refreshToken, ".")
 					tokenData[0] = "aaaaaaaaaaaaaaa"
+					newValue := encode(strings.Join(tokenData, "."))
 
 					return &http.Cookie{
 						Name:     cookie.Name,
-						Value:    strings.Join(tokenData, "."),
+						Value:    newValue,
 						HttpOnly: cookie.HttpOnly,
 						Path:     cookie.Path,
 						Expires:  cookie.Expires,
@@ -240,6 +251,34 @@ func TestApp(t *testing.T) {
 			},
 			RT: &RefreshToken{
 				NumCookieSt: 11,
+			},
+		},
+		{ //14. попытка обновления пары токенов, неправльный user id в access токене
+			Path: "/api/refresh",
+			Expected: Response{
+				StatusCode: http.StatusUnauthorized,
+			},
+			AT: &AccessToken{
+				NumTokenSt: 13,
+				TokenUpdate: func(token string) string {
+					claims := jwt.MapClaims{}
+					_, _ = jwt.ParseWithClaims(
+						token,
+						&claims,
+						func(token *jwt.Token) (interface{}, error) {
+							return []byte(key), nil
+						},
+					)
+
+					claims["user_id"] = 999 //новый user id
+					newToken := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+					signedRefreshToken, _ := newToken.SignedString([]byte(key))
+
+					return signedRefreshToken
+				},
+			},
+			RT: &RefreshToken{
+				NumCookieSt: 13,
 			},
 		},
 	}

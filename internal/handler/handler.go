@@ -6,6 +6,7 @@ import (
 	"app/internal/tokens"
 	"app/pkg/logger"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -120,9 +121,11 @@ func (h *handler) issue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	encodedRefreshToken := base64.StdEncoding.EncodeToString([]byte(refreshToken.Value))
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
-		Value:    refreshToken.Value,
+		Value:    encodedRefreshToken,
 		HttpOnly: true,
 		Path:     "/api/refresh",
 		Expires:  refreshToken.ExpDate,
@@ -159,8 +162,14 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshTokenFromReq := cookie.Value
-
+	encodedRefreshTokenFromReq := cookie.Value
+	decodedRefreshTokenFromReq, err := base64.StdEncoding.DecodeString(encodedRefreshTokenFromReq)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		logger.Info("can not decode refresh token", methodPtr, "error", err.Error(), "encoded refresh token from req", encodedRefreshTokenFromReq, "status code", http.StatusUnauthorized)
+		return
+	}
+	refreshTokenFromReq := string(decodedRefreshTokenFromReq)
 	refreshToken, err := h.tokenManager.ParseRefreshTokenFromReq(refreshTokenFromReq)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -184,7 +193,12 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 
 	hashedRefreshToken, expDate, guid, err := h.storage.GetRefreshTokenData(accessToken.UserID)
 	if err != nil {
-		//TODO если не нашел ничего в базе
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusUnauthorized)
+			logger.Info("bad user id from access token", methodPtr, "access token", accessToken.MatchingKey, "status code", http.StatusUnauthorized)
+			return
+		}
+
 		w.WriteHeader(http.StatusInternalServerError)
 		logger.Error("get hashed refresh token and exp date failed", methodPtr, "error", err.Error(), "user_id", accessToken.UserID)
 		return
@@ -249,9 +263,11 @@ func (h *handler) refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	encodedRefreshToken := base64.StdEncoding.EncodeToString([]byte(newRefreshToken.Value))
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
-		Value:    newRefreshToken.Value,
+		Value:    encodedRefreshToken,
 		HttpOnly: true,
 		Path:     "/api/refresh",
 		Expires:  newRefreshToken.ExpDate,
