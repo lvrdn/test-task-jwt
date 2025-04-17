@@ -1,0 +1,15 @@
+#version: '3.9'
+
+services:
+  test_postgres:
+    image: postgres:latest
+    container_name: test_postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: "1234"
+      POSTGRES_DB: test_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - .:/docker-entrypoint-initdb.d/
+    restart: unless-stopped
