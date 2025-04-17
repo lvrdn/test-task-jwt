@@ -13,6 +13,8 @@ type config struct {
 	AccessTokenKey         string `envconfig:"ACCESS_KEY"`
 	AccessTokenExpMinutes  int    `envconfig:"ACCESS_EXP_MINUTES"`
 	RefreshTokenExpMinutes int    `envconfig:"REFRESH_EXP_MINUTES"`
+	RefreshTokenLen        int    `envconfig:"REFRESH_TOKEN_LEN"`
+	MathcingKeyLen         int    `envconfig:"MATCHING_KEY_LEN"`
 }
 
 func GetConfig() (*config, error) {
